@@ -288,6 +288,16 @@ def render_scene(ds):
     rendered = renderer.render_scene(ds_objects, ds_cameras, render_depth=True)
     return rendered
 
+
+# Get the usual np image from the bokeh figure and append it to dict
+def append_with_np_figures(figures):
+    figure_keys = list(figures.keys())
+    for key in figure_keys:
+        np_im = figures[key].renderers[0].data_source.data['image'][0]
+        figures[key + "_np"] = np.flipud(np_im)
+    return figures
+
+
 def main():
     loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
     for logger in loggers:
@@ -319,9 +329,9 @@ def main():
     skip_mv = args.n_views < 2
     skip_predictions = False
 
-    object_set = 'tless'
     if 'tless' in args.config:
         object_set = 'tless'
+        urdf_ds_name = 'tless.cad'
         coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
@@ -331,6 +341,7 @@ def main():
         refiner_run_id = 'ycbv-refiner-finetune--251020'
         n_coarse_iterations = 0
         n_refiner_iterations = 2
+        urdf_ds_name = 'ycbv'
     else:
         raise ValueError(args.config)
 
@@ -341,6 +352,7 @@ def main():
         ds_name = 'tless.primesense.test.bop19'
     elif args.config == 'ycbv':
         ds_name = 'ycbv.test.keyframes'
+
     else:
         raise ValueError(args.config)
 
@@ -452,6 +464,7 @@ def main():
     # results = torch.load(data_path)
     # all_predictions = results["predictions"]
 
+
     # Evaluation
     predictions_to_evaluate = set()
     if 'ycbv' in ds_name:
@@ -472,6 +485,7 @@ def main():
         ]:
             predictions_to_evaluate.add(f'{det_key}/{k}')
 
+    # All available predictions for given dataset
     all_predictions = OrderedDict({k: v for k, v in sorted(all_predictions.items(), key=lambda item: item[0])})
 
     # Evaluation.
@@ -487,20 +501,28 @@ def main():
     # mesh_db = MeshDataBase.from_object_ds(object_ds)
     # meshes = mesh_db.batched().cuda().float()
 
-    renderer = BulletSceneRenderer()
-    keys_iter = iter(all_predictions.keys())
-    print(all_predictions.keys())
-    dbg_scene_id = 8
-    dbg_view_id = 1
 
-    single_view_pred1 = filter_predictions(all_predictions[next(keys_iter)], dbg_scene_id, dbg_view_id)
-    single_view_pred2 = filter_predictions(all_predictions[next(keys_iter)], dbg_scene_id, dbg_view_id)
-    single_view_pred3 = filter_predictions(all_predictions[next(keys_iter)], dbg_scene_id, dbg_view_id)
-    single_view_pred4 = filter_predictions(all_predictions[next(keys_iter)], dbg_scene_id, dbg_view_id)
-    plots1 = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred1)
-    plots2 = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred2)
-    plots3 = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred3)
-    plots4 = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred4)
+    # Which scene to render
+    if 'tless' in ds_name:
+        dbg_scene_id = 8
+        dbg_view_id = 1
+    elif 'ycbv' in ds_name:
+        dbg_scene_id = 48
+        dbg_view_id = 1
+    else:
+        raise ValueError(ds_name)
+
+    keys_iter = iter(all_predictions.keys())
+    print(f"Pred keys are {all_predictions.keys()}")
+
+    renderer = BulletSceneRenderer(urdf_ds=urdf_ds_name)
+    # Tracing how same prediction changes with refinement iterations
+    all_plots = dict()
+    for pred_name, pred_val in all_predictions.items():
+        single_view_pred = filter_predictions(pred_val, dbg_scene_id, dbg_view_id)
+        one_plot = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred)
+        all_plots[pred_name] = append_with_np_figures(one_plot)
+
 
     return # DBG return
 

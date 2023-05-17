@@ -1,12 +1,16 @@
+import random
+
 import numpy as np
 
 from .plotter import Plotter
 
 from cosypose.datasets.wrappers.augmentation_wrapper import AugmentationWrapper
 from cosypose.datasets.augmentations import CropResizeToAspectAugmentation
+from cosypose.rendering.bullet_scene_renderer import BulletSceneRenderer
 
+import seaborn as sns
 
-def filter_predictions(preds, scene_id, view_id=None, th=None):
+def filter_predictions_by_scene_and_view(preds, scene_id, view_id=None, th=None):
     mask = preds.infos['scene_id'] == scene_id
     if view_id is not None:
         mask = np.logical_and(mask, preds.infos['view_id'] == view_id)
@@ -17,22 +21,35 @@ def filter_predictions(preds, scene_id, view_id=None, th=None):
     return preds
 
 
+def make_colormaps(labels):
+    colors_hex = sns.color_palette(n_colors=len(labels)).as_hex()
+    colormap_hex = {label: color for label, color in zip(labels, colors_hex)}
+    colormap_rgb = {k: [int(h[1:][i:i+2], 16) / 255. for i in (0, 2, 4)] + [1.0] for k, h in colormap_hex.items()}
+    return colormap_rgb, colormap_hex
+
 def render_prediction_wrt_camera(renderer, pred, camera=None, resolution=(640, 480)):
     pred = pred.cpu()
     camera.update(TWC=np.eye(4))
+
+    colormap_rgb, _ = make_colormaps(pred.infos['label'])
+    pred.infos['color'] = pred.infos['label'].apply(lambda k: colormap_rgb[k])
 
     list_objects = []
     for n in range(len(pred)):
         row = pred.infos.iloc[n]
         obj = dict(
             name=row.label,
-            color=(1, 1, 1, 1),
+            color=row.color,
             TWO=pred.poses[n].numpy(),
         )
+        obj['color'][-1] = 0.4   # make transparent
         list_objects.append(obj)
-    rgb_rendered = renderer.render_scene(list_objects, [camera])[0]['rgb']
-    return rgb_rendered
 
+    renderer.disconnect()
+    renderer = BulletSceneRenderer('tless.cad', preload_cache=False)
+    rendered_scene = renderer.render_scene(list_objects, [camera])
+    rgb_rendered = rendered_scene[0]['rgb']
+    return rgb_rendered
 
 def make_singleview_prediction_plots(scene_ds, renderer, predictions, detections=None, resolution=(640, 480)):
     plotter = Plotter()

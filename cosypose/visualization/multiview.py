@@ -20,13 +20,14 @@ def get_group_infos(group_id, mv_scene_ds):
     return scene_id, view_ids
 
 
-def filter_predictions(preds, group_id):
+def filter_predictions_by_group(preds, group_id):
     m = preds.infos['group_id'] == group_id
     return preds[np.where(m)[0]]
 
 
 def nms3d(preds, th=0.04, poses_attr='poses'):
-    TCO, TCO_infos = getattr(preds, poses_attr).cpu(), preds.infos
+    TCO = getattr(preds, poses_attr).cpu()
+    TCO_infos = preds.infos
     is_tested = set()
     TCO = np.array(TCO)
     scores = TCO_infos['score'].values
@@ -55,7 +56,7 @@ def nms3d(preds, th=0.04, poses_attr='poses'):
 def make_scene_renderings(objects, cameras, urdf_ds_name, distance=1.5, theta=np.pi/4, angles=[0],
                           object_scale=1.0, camera_scale=1.5, background_color=(242, 231, 191),
                           show_cameras=False,
-                          resolution=(640, 480), colormap_rgb=None, object_id_ref=0,
+                          resolution=(1024, 840), colormap_rgb=None, object_id_ref=0,
                           gui=False,
                           use_nms3d=True,
                           camera_color=(0.2, 0.2, 0.2, 1.0)):
@@ -96,6 +97,7 @@ def make_scene_renderings(objects, cameras, urdf_ds_name, distance=1.5, theta=np
         obj = dict(
             name=objects.infos.loc[obj_id, 'label'],
             color=objects.infos.loc[obj_id, 'color'],
+            # color=(0.4, 1, 0.2, 0.6),
             TWO=TWO,
         )
         list_objects.append(obj)

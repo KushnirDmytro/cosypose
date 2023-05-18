@@ -4,6 +4,7 @@ import torch.multiprocessing
 import time
 import json
 import os
+import pinocchio
 import cosypose
 from pathlib import Path
 
@@ -503,7 +504,15 @@ def main():
     # Which scene to render
     if 'tless' in ds_name:
         # interesting scene ids: 4, 5, 6, 8,  13, 20
-        dbg_scene_id, dbg_view_id = 4, 407
+        # dbg_scene_id, dbg_view_id = 4, 407
+        dbg_scene_id, dbg_view_id = 5, 500 # 5, 500
+        # dbg_scene_id, dbg_view_id = 6, 480 # No bugs, not the best pose
+        # dbg_scene_id, dbg_view_id = 6, 500 # has something like detection bug (best pose)
+        # dbg_scene_id, dbg_view_id = 8, 464
+        # dbg_scene_id, dbg_view_id = 13, 486 # severe bugs with pix2pose detections
+        # dbg_scene_id, dbg_view_id = 13, 450 # better
+        # dbg_scene_id, dbg_view_id = 13, 100 # Simple, hard to see interconnections
+        # dbg_scene_id, dbg_view_id = 20, 282
 
     elif 'ycbv' in ds_name:
         dbg_scene_id = 48
@@ -528,50 +537,44 @@ def main():
     # scene_ds_index['ds_idx'] = np.arange(len(scene_ds_index))
     # scene_ds_index = scene_ds_index.set_index(['scene_id', 'view_id'])
 
+    # TODO: Understand how to render a scene with MultiView. Get how this results structure is built
 
     #  Adapt to multiview data structure
-    scene_ds_index = scene_ds.frame_index
-    selected_rows = (scene_ds_index['scene_id'] == dbg_scene_id) & (scene_ds_index['view_id'] == dbg_view_id)
-    idx = scene_ds_index[selected_rows].index[0]
-    rgb_input, mask, state = scene_ds[idx]
-    camera = state['camera']
-
     # scene_ds_index = scene_ds.frame_index
-    # scene_ds_index['ds_idx'] = np.arange(len(scene_ds_index))
-    # scene_ds_index = scene_ds_index.set_index(['scene_id', 'view_id'])
-    # idx = scene_ds_index.loc[(scene_id, view_id), 'ds_idx']
-    #
-    # augmentation = CropResizeToAspectAugmentation(resize=resolution)
-    # scene_ds = AugmentationWrapper(scene_ds, augmentation)
+    # selected_rows = (scene_ds_index['scene_id'] == dbg_scene_id) & (scene_ds_index['view_id'] == dbg_view_id)
+    # idx = scene_ds_index[selected_rows].index[0]
     # rgb_input, mask, state = scene_ds[idx]
+    # camera = state['camera']
 
-    fps = 25
-    duration = 10
-    n_images = fps * duration
-    n_images = 1  # Uncomment this if you just want to look at one image, generating the gif takes some time
-    for pred_name, pred_val in all_predictions.items():
-        single_view_pred = filter_predictions_by_group(pred_val, dbg_group_id)
-        images = make_scene_renderings(single_view_pred, [camera],
-                                       urdf_ds_name=urdf_ds_name,
-                                       distance=1.3,
-                                       object_scale=1.0,
-                                       show_cameras=False,
-                                       camera_color=(0, 0, 0, 1),
-                                       theta=np.pi / 4,
-                                       resolution=(640, 480),
-                                       object_id_ref=0,
-                                       colormap_rgb=defaultdict(lambda: [1, 1, 1, 1]) if 'ycb' in ds_name else None,
-                                       angles=np.linspace(0, 2 * np.pi, n_images),
-                                       use_nms3d=False  # Issue with this parameter as it requires precomputed objects
-                                       )
+    # fps = 25
+    # duration = 10
+    # n_images = fps * duration
+    # n_images = 1  # Uncomment this if you just want to look at one image, generating the gif takes some time
+    # for pred_name, pred_val in all_predictions.items():
+    #     single_view_pred = filter_predictions_by_group(pred_val, dbg_group_id)
+    #     images = make_scene_renderings(single_view_pred, [camera],
+    #                                    urdf_ds_name=urdf_ds_name,
+    #                                    distance=1.3,
+    #                                    object_scale=1.0,
+    #                                    show_cameras=False,
+    #                                    camera_color=(0, 0, 0, 1),
+    #                                    theta=np.pi / 4,
+    #                                    resolution=(640, 480),
+    #                                    object_id_ref=0,
+    #                                    colormap_rgb=defaultdict(lambda: [1, 1, 1, 1]) if 'ycb' in ds_name else None,
+    #                                    angles=np.linspace(0, 2 * np.pi, n_images),
+    #                                    use_nms3d=False  # Issue with this parameter as it requires precomputed objects
+    #                                    )
 
     # TODO: render GT
     renderer = BulletSceneRenderer(urdf_ds=urdf_ds_name)
     # Tracing how same prediction changes with refinement iterations
     all_plots = dict()
     for pred_name, pred_val in all_predictions.items():
+
+        # Predictions
         single_view_pred = filter_predictions_by_scene_and_view(pred_val, dbg_scene_id, dbg_view_id)
-        one_plot = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred)
+        one_plot = make_singleview_prediction_plots(scene_ds=scene_ds, renderer=renderer, predictions=single_view_pred, disp_gt=True)
         all_plots[pred_name] = append_with_np_figures(one_plot)
 
     return # DBG return

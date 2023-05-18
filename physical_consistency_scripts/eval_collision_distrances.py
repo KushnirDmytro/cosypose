@@ -2,8 +2,8 @@ import torch
 from cosypose.config import LOCAL_DATA_DIR
 from cosypose.datasets.datasets_cfg import make_scene_dataset
 from cosypose.rendering.bullet_scene_renderer import BulletSceneRenderer
-from cosypose.visualization.singleview import make_singleview_prediction_plots, filter_predictions
-from cosypose.visualization.singleview import filter_predictions
+from cosypose.visualization.singleview import make_singleview_prediction_plots, filter_predictions_by_scene_and_view
+from cosypose.visualization.singleview import filter_predictions_by_scene_and_view
 from bokeh.plotting import gridplot
 from bokeh.io import show, output_notebook; output_notebook()
 import os
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
     scene_id = 5
     view_id = 27
-    this_pred = filter_predictions(predictions, scene_id, view_id)
+    this_pred = filter_predictions_by_scene_and_view(predictions, scene_id, view_id)
 
     # Works only under jupyter
     figures = disp_predictions(scene_ds, this_pred)

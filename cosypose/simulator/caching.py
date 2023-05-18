@@ -1,7 +1,7 @@
 import numpy as np
 from .body import Body
 from copy import deepcopy
-from collections import defaultdict
+from collections import defaultdict, OrderedDict, Counter
 from .client import BulletClient
 
 
@@ -33,12 +33,10 @@ class BodyCache:
 
     def get_bodies_by_labels(self, labels):
         self.hide_bodies()
-        gb_label = defaultdict(lambda: 0)
-        for label in labels:
-            gb_label[label] += 1
+        gp_label = Counter(labels)
 
-        for label, n_instances in gb_label.items():
-            n_missing = gb_label[label] - len(self.cache[label])
+        for label, n_instances in gp_label.items():
+            n_missing = gp_label[label] - len(self.cache[label])
             for n in range(n_missing):
                 self._load_body(label)
 

@@ -42,16 +42,25 @@ def render_prediction_wrt_camera(renderer, pred, camera=None, resolution=(640, 4
             color=row.color,
             TWO=pred.poses[n].numpy(),
         )
-        obj['color'][-1] = 0.4   # make transparent
+        obj['color'][-1] = 0.5   # make transparent
         list_objects.append(obj)
 
-    renderer.disconnect()
-    renderer = BulletSceneRenderer('tless.cad', preload_cache=False)
     rendered_scene = renderer.render_scene(list_objects, [camera])
     rgb_rendered = rendered_scene[0]['rgb']
     return rgb_rendered
 
-def make_singleview_prediction_plots(scene_ds, renderer, predictions, detections=None, resolution=(640, 480)):
+def render_gt_wrt_camera(renderer, gt, camera=None, resolution=(640, 480)):
+    # camera.update(TWC=np.eye(4))
+    colormap_rgb, _ = make_colormaps([el['label'] for el in gt])
+    for el in gt:
+        el['color'] = colormap_rgb[el['label']]
+        el['color'][-1] = 0.5  # make transparent
+
+    rendered_scene = renderer.render_scene(gt, [camera])
+    rgb_rendered = rendered_scene[0]['rgb']
+    return rgb_rendered
+
+def make_singleview_prediction_plots(scene_ds, renderer, predictions, detections=None, resolution=(640, 480), disp_gt=False):
     plotter = Plotter()
 
     scene_id, view_id = np.unique(predictions.infos['scene_id']).item(), np.unique(predictions.infos['view_id']).item()
@@ -77,4 +86,10 @@ def make_singleview_prediction_plots(scene_ds, renderer, predictions, detections
     pred_rendered = render_prediction_wrt_camera(renderer, predictions, camera=state['camera'])
     figures['pred_rendered'] = plotter.plot_image(pred_rendered)
     figures['pred_overlay'] = plotter.plot_overlay(rgb_input, pred_rendered)
+
+    # TODO: fix GT correct display (need other case when transformation compared)
+    if disp_gt:
+        gt_rendered = render_gt_wrt_camera(renderer, gt=state['objects'], camera=state['camera'])
+        figures['gt_rendered'] = plotter.plot_image(gt_rendered)
+        figures['gt_overlay'] = plotter.plot_overlay(rgb_input, gt_rendered)
     return figures

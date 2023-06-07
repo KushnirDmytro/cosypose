@@ -36,7 +36,7 @@ logger = get_logger(__name__)
 
 def load_detector(run_id):
     run_dir = EXP_DIR / run_id
-    cfg = yaml.load((run_dir / 'config.yaml').read_text(), Loader=yaml.FullLoader)
+    cfg = yaml.unsafe_load((run_dir / 'config.yaml').read_text())
     cfg = check_update_config(cfg)
     label_to_category_id = cfg.label_to_category_id
     model = create_model_detector(cfg, len(label_to_category_id))

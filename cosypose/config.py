@@ -50,7 +50,8 @@ else:
     CONDA_BASE_DIR = os.environ['CONDA_PREFIX']
     CONDA_ENV = 'base'
 
-cfg = yaml.load((PROJECT_DIR / 'config_yann.yaml').read_text(), Loader=yaml.FullLoader)
+cfg = yaml.unsafe_load((PROJECT_DIR / 'config_yann.yaml').read_text())
+
 
 SLURM_GPU_QUEUE = cfg['slurm_gpu_queue']
 SLURM_QOS = cfg['slurm_qos']

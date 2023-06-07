@@ -81,7 +81,7 @@ def make_eval_bundle(args, model_training):
         if run_id is None:
             return None
         run_dir = EXP_DIR / run_id
-        cfg = yaml.load((run_dir / 'config.yaml').read_text(), Loader=yaml.FullLoader)
+        cfg = yaml.unsafe_load((run_dir / 'config.yaml').read_text())
         cfg = check_update_config(cfg)
         model = create_model_pose(cfg, renderer=model_training.renderer,
                                   mesh_db=model_training.mesh_db).cuda().eval()
@@ -190,7 +190,7 @@ def train_pose(args):
 
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
-        resume_args = yaml.load((resume_dir / 'config.yaml').read_text())
+        resume_args = yaml.unsafe_load((resume_dir / 'config.yaml').read_text())
         keep_fields = set(['resume_run_id', 'epoch_size', ])
         vars(args).update({k: v for k, v in vars(resume_args).items() if k not in keep_fields})
 

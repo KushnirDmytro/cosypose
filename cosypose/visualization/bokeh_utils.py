@@ -34,7 +34,7 @@ def plot_image(im, axes=True, tools='', im_size=None, figure=None):
 def make_image_figure(im_size=(240, 320), axes=True):
     w, h = im_size
     f = bokeh_figure(x_range=(0, w), y_range=(0, h),
-                     plot_width=w, plot_height=h, tools='',
+                     width=w, height=h, tools='',
                      tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
     f.toolbar.logo = None
     if not axes:
@@ -48,7 +48,7 @@ def image_figure(key, source, im_size=(240, 320), axes=True, tools='',
     h, w = im_size
     if figure is None:
         f = bokeh_figure(x_range=(0, w), y_range=(0, h),
-                         plot_width=w, plot_height=h, tools=tools,
+                         width=w, height=h, tools=tools,
                          tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
     else:
         f = figure

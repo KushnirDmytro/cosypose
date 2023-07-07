@@ -50,7 +50,7 @@ def render_prediction_wrt_camera(renderer, pred, camera=None, resolution=(640, 4
     return rgb_rendered
 
 def render_gt_wrt_camera(renderer, gt, camera=None, resolution=(640, 480)):
-    # camera.update(TWC=np.eye(4))
+    camera.update(TWC=camera['T0C'])  # crunch. Required to set correct pose for rendering in same pipeline as predictions
     colormap_rgb, _ = make_colormaps([el['label'] for el in gt])
     for el in gt:
         el['color'] = colormap_rgb[el['label']]
